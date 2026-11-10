@@ -1,0 +1,88 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Crossword</title>
+<!--
+LLM INSTRUCTIONS: produce ONLY a JSON object (no code, no PDF/HTML) for this page's textbox:
+{
+  "title": "Optional title",
+  "rows": 3, "cols": 3,          // grid size
+  "rtl": true,                   // optional, default true (Hebrew: column 0 is the RIGHTMOST column)
+  "words": [
+    {"r": 0, "c": 0, "dir": "across", "answer": "123", "clue": "any unicode text"},
+    {"r": 0, "c": 0, "dir": "down",   "answer": "369", "clue": "..."}
+  ]
+}
+r,c = 0-based row/column of the word's FIRST cell; the word then extends right (or LEFT if rtl) for across, or down.
+Black cells and clue numbers are computed automatically (cells not used by any word are black).
+Crossing words must share the same character at the crossing cell. Digit-only across answers in rtl mode
+are written left-to-right as numbers normally are, so "c" is the word's rightmost cell.
+-->
+<style>
+body{font-family:sans-serif;margin:1em}
+textarea{width:100%;height:12em;font-family:monospace}
+#err{color:red;white-space:pre}
+.pg{break-after:page;padding:1em}
+h1{text-align:center}
+table{border-collapse:collapse;margin:1em auto}
+td{width:2.4em;height:2.4em;border:1px solid #000;position:relative;padding:0;text-align:center;font-size:1.3em}
+td.b{background:#000}
+td i{position:absolute;top:1px;inset-inline-start:2px;font-size:.5em;font-style:normal}
+.cl{columns:2;font-size:1.1em}
+.cl h3{margin:.5em 0 .2em}
+@media print{.ui{display:none}body{margin:0}}
+</style>
+<div class="ui">
+<textarea id="t" spellcheck="false">{
+  "title": "דוגמה",
+  "rows": 3, "cols": 3,
+  "words": [
+    {"r":0,"c":0,"dir":"across","answer":"123","clue":"המספרים הראשונים"},
+    {"r":2,"c":0,"dir":"across","answer":"789","clue":"שבע, שמונה, ..."},
+    {"r":0,"c":0,"dir":"down","answer":"369","clue":"שלוש כפולות"},
+    {"r":0,"c":2,"dir":"down","answer":"147","clue":"קפיצות של 3"}
+  ]
+}</textarea>
+<button onclick="go()">Generate</button> (then Ctrl+P) <span id="err"></span>
+</div>
+<div id="out"></div>
+<script>
+function go(){
+  err.textContent=out.innerHTML="";
+  try{
+    const p=JSON.parse(t.value),rtl=p.rtl!==false,g={},starts={},list={a:[],d:[]};
+    for(const w of p.words){
+      const a=/^a/i.test(w.dir),ch=[...w.answer],dig=/^\d+$/.test(w.answer);
+      if(a&&rtl&&dig)ch.reverse();
+      ch.forEach((x,i)=>{
+        const r=w.r+(a?0:i),c=w.c+(a?i:0),k=r+","+c;
+        if(r<0||c<0||r>=p.rows||c>=p.cols)throw`Out of bounds: "${w.answer}" at (${w.r},${w.c}) ${w.dir}`;
+        if(g[k]&&g[k]!==x)throw`Conflict at (${r},${c}): "${g[k]}" vs "${x}" (word "${w.answer}")`;
+        g[k]=x;
+      });
+      starts[w.r+","+w.c]=1;
+    }
+    let n=0;const num={};
+    for(let r=0;r<p.rows;r++)for(let c=0;c<p.cols;c++)if(starts[r+","+c])num[r+","+c]=++n;
+    p.words.forEach(w=>list[/^a/i.test(w.dir)?"a":"d"].push([num[w.r+","+w.c],w.clue,[...w.answer].length]));
+    const grid=sol=>{
+      let h="<table>";
+      for(let r=0;r<p.rows;r++){
+        h+="<tr>";
+        for(let c=0;c<p.cols;c++){
+          const k=r+","+c;
+          h+=g[k]?`<td>${num[k]?`<i>${num[k]}</i>`:""}${sol?g[k]:""}</td>`:`<td class=b></td>`;
+        }
+        h+="</tr>";
+      }
+      return h+"</table>";
+    };
+    const L=rtl?["אופקי","אנכי","פתרון"]:["Across","Down","Solution"];
+    const cl=(x,s)=>`<h3>${s}</h3>`+x.sort((a,b)=>a[0]-b[0]).map(e=>`${e[0]}. ${e[1]} (${e[2]})<br>`).join("");
+    const T=p.title||"";
+    out.innerHTML=`<div dir="${rtl?"rtl":"ltr"}">
+      <div class=pg><h1>${T}</h1>${grid(0)}<div class=cl>${cl(list.a,L[0])}${cl(list.d,L[1])}</div></div>
+      <div class=pg><h1>${T} – ${L[2]}</h1>${grid(1)}</div></div>`;
+  }catch(e){err.textContent=e.message||e}
+}
+go();
+</script>
