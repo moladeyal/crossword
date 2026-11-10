@@ -26,9 +26,9 @@ textarea{width:100%;height:12em;font-family:monospace}
 .pg{break-after:page;padding:1em}
 h1{text-align:center}
 table{border-collapse:collapse;margin:1em auto}
-td{width:2.4em;height:2.4em;border:1px solid #000;position:relative;padding:0;text-align:center;font-size:1.3em}
+td{width:2.4em;height:2.4em;border:1px solid #000;position:relative;padding:0;text-align:center;font-size:2.6em}
 td.b{background:#000}
-td i{position:absolute;top:1px;inset-inline-start:2px;font-size:.5em;font-style:normal}
+td i{position:absolute;top:1px;inset-inline-start:2px;font-size:.4em;font-style:normal}
 .cl{columns:2;font-size:1.1em}
 .cl h3{margin:.5em 0 .2em}
 @media print{.ui{display:none}body{margin:0}}
@@ -78,7 +78,7 @@ function go(){
       }
       return h+"</table>";
     };
-    const L=rtl?["אופקי","אנכי","פתרון"]:["Across","Down","Solution"];
+    const L=rtl?["אופקי →","אנכי ↓","פתרון"]:["Across →","Down ↓","Solution"];
     const cl=(x,s)=>`<h3>${s}</h3>`+x.sort((a,b)=>a[0]-b[0]).map(e=>`${e[0]}. ${e[1]} (${e[2]})<br>`).join("");
     const T=p.title||"";
     out.innerHTML=`<div dir="${rtl?"rtl":"ltr"}">
