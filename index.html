@@ -6,16 +6,18 @@ LLM INSTRUCTIONS: produce ONLY a JSON object (no code, no PDF/HTML) for this pag
 {
   "title": "Optional title",
   "rows": 3, "cols": 3,          // grid size
-  "rtl": true,                   // optional, default true (Hebrew: column 0 is the RIGHTMOST column)
+  "rtl": true,                   // optional, default true: text language/direction of page and clues (Hebrew)
+  "grid": "ltr",                 // optional override; default: "ltr" if all answers are digits, else follows rtl
   "words": [
     {"r": 0, "c": 0, "dir": "across", "answer": "123", "clue": "any unicode text"},
     {"r": 0, "c": 0, "dir": "down",   "answer": "369", "clue": "..."}
   ]
 }
-r,c = 0-based row/column of the word's FIRST cell; the word then extends right (or LEFT if rtl) for across, or down.
+r,c = 0-based row/column of the word's FIRST cell; the word then extends right (or LEFT if the grid is rtl, where column 0
+is the RIGHTMOST column) for across, or down.
 Black cells and clue numbers are computed automatically (cells not used by any word are black).
-Crossing words must share the same character at the crossing cell. Digit-only across answers in rtl mode
-are written left-to-right as numbers normally are, so "c" is the word's rightmost cell.
+Crossing words must share the same character at the crossing cell. In an rtl grid, digit-only across answers
+are still written left-to-right as numbers normally are, so "c" is the word's rightmost cell.
 -->
 <style>
 body{font-family:sans-serif;margin:1em}
@@ -38,8 +40,8 @@ td i{position:absolute;top:1px;inset-inline-start:2px;font-size:.5em;font-style:
   "words": [
     {"r":0,"c":0,"dir":"across","answer":"123","clue":"המספרים הראשונים"},
     {"r":2,"c":0,"dir":"across","answer":"789","clue":"שבע, שמונה, ..."},
-    {"r":0,"c":0,"dir":"down","answer":"369","clue":"שלוש כפולות"},
-    {"r":0,"c":2,"dir":"down","answer":"147","clue":"קפיצות של 3"}
+    {"r":0,"c":0,"dir":"down","answer":"147","clue":"קפיצות של 3"},
+    {"r":0,"c":2,"dir":"down","answer":"369","clue":"שלוש כפולות"}
   ]
 }</textarea>
 <button onclick="go()">Generate</button> (then Ctrl+P) <span id="err"></span>
@@ -49,10 +51,10 @@ td i{position:absolute;top:1px;inset-inline-start:2px;font-size:.5em;font-style:
 function go(){
   err.textContent=out.innerHTML="";
   try{
-    const p=JSON.parse(t.value),rtl=p.rtl!==false,g={},starts={},list={a:[],d:[]};
+    const p=JSON.parse(t.value),rtl=p.rtl!==false,gr=p.grid?p.grid=="rtl":rtl&&!p.words.every(w=>/^\d+$/.test(w.answer)),g={},starts={},list={a:[],d:[]};
     for(const w of p.words){
       const a=/^a/i.test(w.dir),ch=[...w.answer],dig=/^\d+$/.test(w.answer);
-      if(a&&rtl&&dig)ch.reverse();
+      if(a&&gr&&dig)ch.reverse();
       ch.forEach((x,i)=>{
         const r=w.r+(a?0:i),c=w.c+(a?i:0),k=r+","+c;
         if(r<0||c<0||r>=p.rows||c>=p.cols)throw`Out of bounds: "${w.answer}" at (${w.r},${w.c}) ${w.dir}`;
@@ -80,8 +82,8 @@ function go(){
     const cl=(x,s)=>`<h3>${s}</h3>`+x.sort((a,b)=>a[0]-b[0]).map(e=>`${e[0]}. ${e[1]} (${e[2]})<br>`).join("");
     const T=p.title||"";
     out.innerHTML=`<div dir="${rtl?"rtl":"ltr"}">
-      <div class=pg><h1>${T}</h1>${grid(0)}<div class=cl>${cl(list.a,L[0])}${cl(list.d,L[1])}</div></div>
-      <div class=pg><h1>${T} – ${L[2]}</h1>${grid(1)}</div></div>`;
+      <div class=pg><h1>${T}</h1><div dir="${gr?"rtl":"ltr"}">${grid(0)}</div><div class=cl>${cl(list.a,L[0])}${cl(list.d,L[1])}</div></div>
+      <div class=pg><h1>${T} – ${L[2]}</h1><div dir="${gr?"rtl":"ltr"}">${grid(1)}</div></div></div>`;
   }catch(e){err.textContent=e.message||e}
 }
 go();
